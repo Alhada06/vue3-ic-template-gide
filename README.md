@@ -1,1 +1,259 @@
-# vue3-ic-template-gide
+<img height=180 src="https://cryptologos.cc/logos/internet-computer-icp-logo.png" />
+
+# VUE.JS 3 IC TEMPLATE AND INTEGRATION GUIDE
+
+Use the latest Vue.js with the Internet Computer. Powered by [ViteJS](https://vitejs.dev/)
+
+The templates and guide on how to integrate vue.js with IC, uses the file structure used in a project created by dfx new.
+This solution was created by analyzing how [create-ic-app](https://github.com/MioQuispe/create-ic-app) integrates vue with ic and after attending may 2023 [Motoko Bootcamp: starter edition](https://github.com/motoko-bootcamp/motoko-starter) specially the [Frontend, authentication & Internet Identity](https://github.com/motoko-bootcamp/motoko-starter/tree/main/lectures/access_control_and_frontend) lecture given by [Kyle](https://github.com/krpeacock)
+
+## Requirements
+
+- [DFINITY SDK](https://internetcomputer.org/docs/current/developer-docs/setup/install/) latest version
+- [NodeJS](https://nodejs.org) version >= 18
+
+## Templates
+
+There are two templates that were made using the guide below, one in js and another in ts, and both use vue router and tailwind.css and agent-js. the implementation of the connection to the backend is in the About view, witch is the simple greet message.
+
+After downloading a specific template, run the following in your code terminal or a terminal in the project directory.
+
+```
+npm install
+
+dfx start --clean
+
+// on another terminal in the project directory
+
+dfx generate
+
+dfx deploy
+
+// if you want the vite server and have hrm
+
+npm run dev
+
+```
+
+## Guide
+
+This is the guide on how to integrate Vue.js with IC step by step , that will end like the templates but with the latest version.
+
+Besides the stated requirements , you will need the a code editor like vscode for example.
+
+### **1** Creating the project by using vue.js as per the docs
+
+In the directory that you want your project open a terminal and run
+
+```
+npm init vue@latest
+
+```
+
+This command will install and execute create-vue,the official Vue project scaffolding tool.
+You will be presented with prompts for several optional features such as TypeScript.
+When prompted to write your project name please try to follow dfx scaffolding: project_name.
+
+After the tool finished open your project on your ide and open a terminal and run the following :
+
+```
+npm install
+
+// install the dfinity agent-js
+
+npm i @dfinity/agent
+
+// vite plugin to expose env vars to the client
+
+npm i vite-plugin-environment
+
+```
+
+### **2** modifying the project structure
+
+#### **.1** Rename the **src** folder to **project_name_frontend**
+
+**_.1.1_** You may be prompted to fix imports by your ide specially when using TS, please let ide do his magic.
+
+#### **.2** Create a folder on your project root directory with the name : **project_name_backend**
+
+**_.2.1_** Inside this folder create a **main.mo** file with the following code
+
+```ruby
+
+       actor {
+           public query func greet(name : Text) : async Text {
+               return "Hello, " # name # "!";
+           };
+       };
+
+```
+
+#### **.3** Create on the root of the project a folder named : **src**
+
+**_.3.1_** Move both the **frontend** and **backend** folders to the **src** folder.
+**_.3.1.1._** you may be prompted again to fix the imports, accept again if you are using TS now is time to check the **tsconfig.app.json** if it was changed to something like this:
+
+```json
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": [
+    "env.d.ts",
+    "src/project_name_frontend/**/*",
+    "src/project_name_frontend/**/*.vue"
+  ],
+  "exclude": ["src/project_name_frontend/**/__tests__/*"],
+  "compilerOptions": {
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/project_name_frontend/*"]
+    }
+  }
+}
+```
+
+#### **.4** Open and change your **index.html** to reflect the changes in your directories
+
+```html
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/project_name_frontend/main.ts"></script>
+</body>
+```
+
+#### **.5** Open and change your **vite.config**.js/.ts file and apply these changes
+
+```ts
+import { fileURLToPath, URL } from "node:url";
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+import EnvironmentPlugin from "vite-plugin-environment";
+
+// eslint-disable-next-line no-undef
+const isDev = process.env["DFX_NETWORK"] !== "ic";
+// setting host to avoid errors when calling backend in the front end ;
+const host = isDev ? "http://127.0.0.1:8000" : "https://ic0.app";
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  // to proxy were the dfx canisters run to be able to do calls to the backend while on dev and enable hot reload
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://0.0.0.0:8000",
+        changeOrigin: true,
+      },
+    },
+  },
+
+  plugins: [
+    vue(),
+    // This is required for now because the code generated by dfx relies on process.env being set
+    EnvironmentPlugin("all", { prefix: "CANISTER_" }),
+    EnvironmentPlugin("all", { prefix: "DFX_" }),
+    EnvironmentPlugin({ BACKEND_CANISTER_ID: "" }),
+  ],
+  resolve: {
+    alias: {
+      "@": fileURLToPath(
+        new URL("./src/project_name_frontend", import.meta.url)
+      ),
+      "@declarations": fileURLToPath(
+        new URL("./src/declarations/", import.meta.url)
+      ),
+    },
+  },
+  define: {
+    global: "window",
+    // This is required for now because the code generated by dfx relies on process.env being set
+    "process.env.NODE_ENV": JSON.stringify(
+      isDev ? "development" : "production"
+    ),
+    //needed mostly for development to be able to call the backend
+    "process.env.VITE_HOST": JSON.stringify(host),
+  },
+});
+```
+
+**\*.5.1** If you are using Typescript you need to modify your **tsconfig.app.json** to reflect these changes in order to use the declarations folder from dfx and use process.env.
+
+```json
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": [
+    "env.d.ts",
+    "src/project_name_frontend/**/*",
+    "src/project_name_frontend/**/*.vue"
+  ],
+  "exclude": ["src/project_name_frontend/**/__tests__/*"],
+  "compilerOptions": {
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/project_name_frontend/*"],
+      "@declarations/*": ["src/declarations/*"]
+    },
+    "types": ["node"]
+  }
+}
+```
+
+#### **.6** On the project root directory create the **dfx.json** file with the following:
+
+```json
+{
+  "canisters": {
+    "project_name_ts_backend": {
+      "main": "src/project_name_backend/main.mo",
+      "type": "motoko"
+    },
+    "project_name_frontend": {
+      "dependencies": ["project_name_backend"],
+      "frontend": {
+        "entrypoint": "dist/index.html"
+      },
+      "source": ["dist/"],
+      "type": "assets"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
+```
+
+**note:** The networks is needed to tie the backend and the vite proxy config properly to call the backend canister on development and the output_env_file to generate an .env with the proper canister ids wither in local or in the ic network and to be used in the frontend app through the process.env.
+
+#### **.7** the modifications are complete to start developing you frontend you will have to to do this:
+
+```
+// on a terminal in the project directory
+
+dfx start --clean
+
+// on another terminal in the project directory
+
+dfx generate
+
+dfx deploy
+
+// if you want the vite server and have hrm
+
+npm run dev
+
+```
+
+**_note:_** for an example on how to connect the backend to the front end checked on either template the
+**AboutView.vue** in the frontend folder **views**.

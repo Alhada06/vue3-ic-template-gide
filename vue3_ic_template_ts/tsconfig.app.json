@@ -1,0 +1,18 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": [
+    "env.d.ts",
+    "src/vue3_ic_template_ts_frontend/**/*",
+    "src/vue3_ic_template_ts_frontend/**/*.vue"
+  ],
+  "exclude": ["src/vue3_ic_template_ts_frontend/**/__tests__/*"],
+  "compilerOptions": {
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/vue3_ic_template_ts_frontend/*"],
+      "@declarations/*": ["src/declarations/*"]
+    },
+    "types": ["node"]
+  }
+}

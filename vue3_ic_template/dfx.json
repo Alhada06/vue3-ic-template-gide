@@ -1,0 +1,30 @@
+{
+  "canisters": {
+    "vue3_ic_template_backend": {
+      "main": "src/vue3_ic_template_backend/main.mo",
+      "type": "motoko"
+    },
+    "vue3_ic_template_frontend": {
+      "dependencies": ["vue3_ic_template_backend"],
+      "frontend": {
+        "entrypoint": "dist/index.html"
+      },
+      "source": ["dist/"],
+      "type": "assets"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
